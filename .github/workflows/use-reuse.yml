@@ -98,7 +98,7 @@ jobs:
     steps:
       - name: Print deploy out
         # Accesses output from the reusable workflow job using needs.<job-name>.outputs.<output-name>
-        run: echo "${{ needs.deploy.outputs.result}}"
+        run: echo "${{ needs.deploy.result }}"
   # Job 5: Report - generates failure report (only runs if workflow fails)
   report:
     # Depends on BOTH lint and deploy jobs
