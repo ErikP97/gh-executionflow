@@ -97,7 +97,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Print deploy out
-        # Accesses output from the reusable workflow job using needs.<job-name>.outputs.<output-name>
+        # Accesses output from the reusable workflow job using needs.<job-name>.<output-name>
         run: echo "${{ needs.deploy.result }}"
   # Job 5: Report - generates failure report (only runs if workflow fails)
   report:

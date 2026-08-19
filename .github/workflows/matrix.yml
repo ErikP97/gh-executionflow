@@ -10,17 +10,13 @@ jobs:
       strategy:
         matrix:
           # First dimension: Node.js versions to test
-          node-version: [12, 22, 24]
+          node-version: [22, 24]
           # Second dimension: Operating systems to test
           operating-system: [ubuntu-latest, windows-latest]
           # Include: adds additional combinations beyond the Cartesian product
           include:
             - node-version: 26  # Test Node 26 only on Ubuntu
               operating-system: ubuntu-latest
-          # Exclude: removes specific combinations from the matrix
-          exclude:
-            - node-version: 12  # Don't test Node 12 on Windows
-              operating-system: windows-latest
       # Matrix creates job combinations: 3 versions × 2 OSes - 1 excluded + 1 included = 6 total jobs
       # Each job runs in parallel
       # References matrix variable to dynamically select OS for this job instance
