@@ -1,27 +1,39 @@
+# GitHub Actions workflow demonstrating build matrix for multiple configurations
+# Demonstrates: matrix strategy, multi-dimensional builds, include/exclude rules, and dynamic environment variables
 name: Matrix Demo
-on: push
+on: push  # Triggers on every push
 jobs:
   build:
+      # continue-on-error: true allows workflow to complete even if some matrix jobs fail
       continue-on-error: true
+      # Strategy defines a matrix of configurations to test in parallel
       strategy:
         matrix:
+          # First dimension: Node.js versions to test
           node-version: [12, 22, 24]
+          # Second dimension: Operating systems to test
           operating-system: [ubuntu-latest, windows-latest]
+          # Include: adds additional combinations beyond the Cartesian product
           include:
-            - node-version: 26
+            - node-version: 26  # Test Node 26 only on Ubuntu
               operating-system: ubuntu-latest
+          # Exclude: removes specific combinations from the matrix
           exclude:
-            - node-version: 12
+            - node-version: 12  # Don't test Node 12 on Windows
               operating-system: windows-latest
+      # Matrix creates job combinations: 3 versions × 2 OSes - 1 excluded + 1 included = 6 total jobs
+      # Each job runs in parallel
+      # References matrix variable to dynamically select OS for this job instance
       runs-on: ${{ matrix.operating-system }}
       steps:
         - name: Get Code
           uses: actions/checkout@v7
-        - name: Use Node.js 
+        - name: Use Node.js
           uses: actions/setup-node@v7
           with:
-                    node-version: ${{ matrix.node-version }}
+            # References matrix variable to dynamically select Node version
+            node-version: ${{ matrix.node-version }}
         - name: Install dependencies
           run: npm ci
         - name: Build project
-          run: npm run build
+          run: npm run build  # Builds project with this Node version & OS combination

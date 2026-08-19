@@ -1,6 +1,6 @@
-# Comprehensive GitHub Actions workflow demonstrating complex job orchestration
-# Demonstrates: parallel jobs, conditional execution, caching, artifacts, job dependencies, failure handling
-name: ContinueWebsite Deployment
+# GitHub Actions workflow demonstrating continue-on-error behavior
+# Demonstrates: graceful failure handling, job dependencies with continue-on-error, and error recovery
+name: Continue Website Deployment
 on:
   push:
     branches:
@@ -41,19 +41,23 @@ jobs:
         if: steps.cache.outputs.cache-hit != 'true'
         run: npm ci
       - name: Test code
-        continue-on-error: true  # Allows workflow to continue even if tests fail
+        # continue-on-error: true allows the workflow to continue even if this step fails
+        # Without this, a test failure would stop the entire workflow
+        continue-on-error: true
         # ID allows referencing this step's outcome in conditional steps
         id: run-tests
         run: npm run test  # Runs unit tests
       - name: Upload test report
-        # Upload artifact only if the workflow fails AND this test step failed
+        # Always upload artifact (don't depend on test step success)
+        # This helps debug failures even when tests fail
         uses: actions/upload-artifact@v7
         with:
           name: test-report
           path: test.json
   # Job 3: Build - creates production build (runs AFTER test completes)
   build:
-    # Waits for test job to complete successfully before starting
+    # Waits for test job to complete (regardless of success/failure due to continue-on-error)
+    # This means build runs even if tests failed, allowing us to always produce artifacts
     needs: test
     runs-on: ubuntu-latest
     steps:
@@ -81,7 +85,7 @@ jobs:
           path: dist        # Directory containing build output
   # Job 4: Deploy - deploys built website (runs AFTER build completes)
   deploy:
-    # Waits for build job to complete successfully
+    # Waits for build job to complete successfully before deploying
     needs: build
     runs-on: ubuntu-latest
     steps:

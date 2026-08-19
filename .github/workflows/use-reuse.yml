@@ -1,5 +1,5 @@
-# Comprehensive GitHub Actions workflow demonstrating complex job orchestration
-# Demonstrates: parallel jobs, conditional execution, caching, artifacts, job dependencies, failure handling
+# Workflow that calls and reuses another workflow (reusable.yml)
+# Demonstrates: workflow composition, reusable workflows, passing inputs/outputs between workflows
 name: Using Reusable Workflow
 on:
   push:
@@ -79,20 +79,25 @@ jobs:
         with:
           name: dist-files  # Artifact identifier for download-artifact action
           path: dist        # Directory containing build output
-  # Job 4: Deploy - deploys built website (runs AFTER build completes)
+  # Job 4: Deploy - calls the reusable workflow instead of doing deployment inline
   deploy:
     # Waits for build job to complete successfully
     needs: build
+    # Uses (calls) another workflow file instead of running steps directly
     uses: ./.github/workflows/reusable.yml
+    # Passes inputs to the reusable workflow
     with:
-      artifact-name: dist-files
+      artifact-name: dist-files  # Tells reusable workflow which artifact to download
+    # Optional: pass secrets to the reusable workflow (commented example)
     #secrets:
       #some-secret: ${{ secrets.some-secret }}
+  # Job 5: Print deploy result - uses output from the reusable deploy workflow
   print-deploy-result:
-    needs: deploy
+    needs: deploy  # Waits for deploy job to complete
     runs-on: ubuntu-latest
     steps:
       - name: Print deploy out
+        # Accesses output from the reusable workflow job using needs.<job-name>.outputs.<output-name>
         run: echo "${{ needs.deploy.outputs.result}}"
   # Job 5: Report - generates failure report (only runs if workflow fails)
   report:

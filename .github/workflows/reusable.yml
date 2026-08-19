@@ -1,33 +1,46 @@
+# Reusable workflow that can be called from other workflows
+# Demonstrates: workflow_call trigger, inputs, outputs, and workflow composition
 name: Reusable Deploy
-on: 
+on:
+  # workflow_call allows this workflow to be invoked from other workflows
   workflow_call:
+    # Inputs are parameters that calling workflows pass to this workflow
     inputs:
       artifact-name:
         description: The name of the deployable artifact files
         required: false
-        default: dist
+        default: dist  # Default value if not specified by caller
         type: string
+    # Outputs allow this workflow to pass data back to the calling workflow
     outputs:
       result:
         description: The result of the deployment operation
+        # Access outputs from job.deploy step id set-result
         value: ${{ jobs.deploy.outputs.outcome }}
+    # Secrets can be passed from the calling workflow (optional example commented out)
     #secrets:
       #some-secret:
         #required: true
-jobs: 
+jobs:
+  # Single job that handles the deployment
   deploy:
+    # Job outputs that are passed back to the calling workflow
     outputs:
       outcome:  ${{ steps.set-result.outputs.step-result }}
     runs-on: ubuntu-latest
     steps:
       - name: Get Code
+        # Downloads the artifact specified by the input parameter
         uses: actions/download-artifact@v7
         with:
+          # References the input parameter passed from the calling workflow
           name: ${{ inputs.artifact-name }}
       - name: List files
-        run: ls
+        run: ls  # Verifies the downloaded files
       - name: Output information
-        run: echo "Deploying & uploading"
+        run: echo "Deploying & uploading"  # Deployment step
       - name: Set result output
+        # ID allows this step's output to be referenced elsewhere
         id: set-result
+        # Writes output that becomes the job's outcome for the caller
         run: echo "step-result=success" >> $GITHUB_OUTPUT
