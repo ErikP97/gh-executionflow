@@ -88,6 +88,12 @@ jobs:
       artifact-name: dist-files
     #secrets:
       #some-secret: ${{ secrets.some-secret }}
+  print-deploy-result:
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print deploy out
+        run: echo "${{ needs.deploy.outputs.result}}"
   # Job 5: Report - generates failure report (only runs if workflow fails)
   report:
     # Depends on BOTH lint and deploy jobs
