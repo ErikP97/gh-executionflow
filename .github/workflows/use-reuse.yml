@@ -84,6 +84,8 @@ jobs:
     # Waits for build job to complete successfully
     needs: build
     uses: ./.github/workflows/reusable.yml
+    with:
+      artifact-name: dist-files
   # Job 5: Report - generates failure report (only runs if workflow fails)
   report:
     # Depends on BOTH lint and deploy jobs
