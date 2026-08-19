@@ -1,0 +1,99 @@
+# Comprehensive GitHub Actions workflow demonstrating complex job orchestration
+# Demonstrates: parallel jobs, conditional execution, caching, artifacts, job dependencies, failure handling
+name: Using Reusable Workflow
+on:
+  push:
+    branches:
+      - main  # Triggers on push to main branch
+jobs:
+  # Job 1: Lint - checks code quality (runs in parallel with test)
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get code
+        uses: actions/checkout@v7
+      - name: Cache dependencies
+        id: cache
+        uses: actions/cache@v6
+        with:
+          path: node_modules
+          key: deps-node-modules-${{ hashFiles('**/package-lock.json') }}
+      - name: Install dependencies
+        # Only install if cache miss (optimization to skip reinstall on cache hit)
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: npm ci
+      - name: Lint code
+        run: npm run lint  # Checks code style and quality
+  # Job 2: Test - runs unit tests (runs in parallel with lint)
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get code
+        uses: actions/checkout@v7
+      - name: Cache dependencies
+        # Same cache strategy as lint job
+        id: cache
+        uses: actions/cache@v6
+        with:
+          path: node_modules
+          key: deps-node-modules-${{ hashFiles('**/package-lock.json') }}
+      - name: Install dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: npm ci
+      - name: Test code
+        # ID allows referencing this step's outcome in conditional steps
+        id: run-tests
+        run: npm run test  # Runs unit tests
+      - name: Upload test report
+        # Upload artifact only if the workflow fails AND this test step failed
+        if: failure() && steps.run-tests.outcome == 'failure'
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-report
+          path: test.json
+  # Job 3: Build - creates production build (runs AFTER test completes)
+  build:
+    # Waits for test job to complete successfully before starting
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get code
+        uses: actions/checkout@v7
+      - name: Cache dependencies
+        # Same cache strategy as other jobs
+        id: cache
+        uses: actions/cache@v6
+        with:
+          path: node_modules
+          key: deps-node-modules-${{ hashFiles('**/package-lock.json') }}
+      - name: Install dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: npm ci
+      - name: Build website
+        # ID allows referencing build step for conditional actions
+        id: build-website
+        run: npm run build  # Compiles the website
+      - name: Upload artifacts
+        # Saves build output for deploy job to download
+        uses: actions/upload-artifact@v7
+        with:
+          name: dist-files  # Artifact identifier for download-artifact action
+          path: dist        # Directory containing build output
+  # Job 4: Deploy - deploys built website (runs AFTER build completes)
+  deploy:
+    # Waits for build job to complete successfully
+    needs: build
+    uses: ./.github/workflows/reusable.yml
+  # Job 5: Report - generates failure report (only runs if workflow fails)
+  report:
+    # Depends on BOTH lint and deploy jobs
+    needs: [lint, deploy]
+    # Only runs if any previous job fails
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Output Information
+        # Outputs debug information about the failed workflow
+        run: |
+           echo "Generating report..."
+           echo "${{ toJSON(github)}}"
